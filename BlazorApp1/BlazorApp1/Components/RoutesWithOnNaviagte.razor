@@ -1,0 +1,26 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage ProtectedSessionStore
+@inject NavigationManager Navigation
+
+@using BlazorApp1.Util
+
+<Router AppAssembly="typeof(Program).Assembly" OnNavigateAsync="OnNavigateAsync">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+</Router>
+
+@code {
+    private async Task OnNavigateAsync(NavigationContext args)
+    {
+        bool shouldRedirect = await RedirectHandler.VeirfySholudRedirectAsync(ProtectedSessionStore);
+
+        if (shouldRedirect)
+        {
+            await ProtectedSessionStore.SetAsync("FirstLogin", "false");
+
+            Navigation.NavigateTo("/welcome");
+        }
+    }
+}

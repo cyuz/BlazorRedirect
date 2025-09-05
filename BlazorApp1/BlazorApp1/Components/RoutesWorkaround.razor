@@ -1,0 +1,74 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage ProtectedSessionStore
+@inject NavigationManager Navigation
+
+@using BlazorApp1.Util
+
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        @if(isChecking)
+        {
+            <LayoutView Layout="@typeof(Layout.MainLayout)">
+                <div class="page-loading">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </LayoutView>
+        }
+        else
+        {
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        }
+    </Found>
+</Router>
+
+@code {
+    private IDisposable? locationChangingRegistration;
+    private bool isChecking { get; set; } = true;
+
+    protected override void OnInitialized()
+    {
+        locationChangingRegistration = Navigation.RegisterLocationChangingHandler(OnNavigationChanging);
+        Navigation.LocationChanged += LocationChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        bool shouldRedirect = await RedirectHandler.VeirfySholudRedirectAsync(ProtectedSessionStore);
+
+        if (shouldRedirect)
+        {
+            Navigation.NavigateTo("/welcome");
+            return;
+        }
+        isChecking = false;
+    }
+
+
+    private async ValueTask OnNavigationChanging(LocationChangingContext context)
+    {
+        bool shouldRedirect = await RedirectHandler.VeirfySholudRedirectAsync(ProtectedSessionStore);
+
+        if (shouldRedirect)
+        {
+            context.PreventNavigation();
+            Navigation.NavigateTo("/welcome");
+        }
+    }
+
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (isChecking)
+        {
+            isChecking = false;
+        }
+    }
+
+
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= LocationChanged;
+        locationChangingRegistration?.Dispose();
+    }
+}
